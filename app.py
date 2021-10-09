@@ -8,20 +8,17 @@ from datetime import datetime
 import requests
 import json
 
-# from .routes import intialize_routes
 
 app = Flask(__name__)
 CORS(app)
 # cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 api = Api(app)
 
-# intialize_routes(api)
-
 user = requests.get('https://infy-money-nodejs.herokuapp.com/api/users/mobile/9999999999')
 user_json = user.json()
 
 
-## ALL THE KEYS
+## ALL THE KEYS ####################################################
 bonds = user_json['fi_data']['BONDS'][0]
 credit_card = user_json['fi_data']['CREDIT_CARD'][0]
 deposit = user_json['fi_data']['DEPOSIT'][0]
@@ -38,7 +35,7 @@ ulip = user_json['fi_data']['ULIP'][0]
 ppf = user_json['fi_data']['PPF'][0]
 
 
-## TotalAssets = Assets - Liabilities
+## TotalAssets and Assets with Liabilities ####################################
 bonds_current_value = float(bonds['summary']['currentValue'])
 term_deposit_current_value = float(term_deposit['summary']['currentValue'])
 credit_card_total_due = float(credit_card['summary']['totalDueAmount'])
@@ -51,12 +48,13 @@ etf_current_value = float(etf['summary']['currentValue'])
 nps_current_value = float(nps['summary']['currentValue'])
 epf_total_balance = float(epf['summary']['totalBalance'])
 
-##### Credit Card details ##########
+##### Credit Card details ######################################################
 Credit_debit_time = []
 Credit_amount = []
 Debit_amount = []
 
-for i in range(1,30):
+
+for i in range(len(credit_card['transactions']['transaction'])):
     time_ori_format = credit_card['transactions']['transaction'][i]['txnDate']
     d = datetime.fromisoformat(time_ori_format)
     credit_card['transactions']['transaction'][i]['txn_Date'] = d.strftime('%d-%m-%Y %H:%M:%S')
@@ -78,7 +76,8 @@ bonds_trade_value = []
 equities_trade_value = []
 govt_securities_trade_value = []
     
-for i in range(0,8):
+
+for i in range(len(equities['transactions']['transaction'])):
     equities_trade_value.append(float(equities['transactions']['transaction'][i]['tradeValue']))
     time_ori_format = equities['transactions']['transaction'][i]['transactionDateTime']
     d = datetime.fromisoformat(time_ori_format)
@@ -86,15 +85,14 @@ for i in range(0,8):
     equities_txn_date.append(equities['transactions']['transaction'][i]['transactionDateTime'])
     
 
-    
-for i in range(0,18):
+for i in range(len(govt_securities['transactions']['transaction'])):
     govt_securities_trade_value.append(float(govt_securities['transactions']['transaction'][i]['tradeValue']))
     time_ori_format = govt_securities['transactions']['transaction'][i]['transactionDateTime']
     d = datetime.fromisoformat(time_ori_format)
     govt_securities['transactions']['transaction'][i]['transactionDateTime'] = d.strftime('%d-%m-%Y')
     govt_securities_txn_date.append(govt_securities['transactions']['transaction'][i]['transactionDateTime'])
     
-
+for i in range(len(bonds['transactions']['transaction'])):
     bonds_trade_value.append(float(bonds['transactions']['transaction'][i]['tradeValue']))
     time_ori_format = bonds['transactions']['transaction'][i]['transactionDateTime']
     d = datetime.fromisoformat(time_ori_format)
@@ -130,7 +128,8 @@ RD_credit_amount_neg = []
 TD_credit_amount_neg = []
 
 
-for i in range(30):
+
+for i in range(len(deposit['transactions']['transaction'])):
     time_ori_format = deposit['transactions']['transaction'][i]['transactionTimestamp']
     d = datetime.fromisoformat(time_ori_format)
     deposit['transactions']['transaction'][i]['txn_Date'] = d.strftime('%d-%m-%Y %H:%M:%S')
@@ -147,6 +146,7 @@ for i in range(30):
          deposit_debit_amount.append(None)
 
 
+for i in range(len(recurring_deposit['transactions']['transaction'])):
     time_ori_format = recurring_deposit['transactions']['transaction'][i]['transactionTimestamp']
     d = datetime.fromisoformat(time_ori_format)
     recurring_deposit['transactions']['transaction'][i]['txn_Date'] = d.strftime('%d-%m-%Y %H:%M:%S')
@@ -162,15 +162,15 @@ for i in range(30):
         RD_credit_amount_neg.append(-(recurring_deposit['transactions']['transaction'][i]['amount']))
         RD_debit_amount.append(None)
 
-
-    time_ori_format = recurring_deposit['transactions']['transaction'][i]['transactionTimestamp']
+for i in range(len(term_deposit['transactions']['transaction'])):
+    time_ori_format = term_deposit['transactions']['transaction'][i]['transactionTimestamp']
     d = datetime.fromisoformat(time_ori_format)
-    recurring_deposit['transactions']['transaction'][i]['txn_Date'] = d.strftime('%d-%m-%Y %H:%M:%S')
-    TD_credit_debit_time.append(recurring_deposit['transactions']['transaction'][i]['txn_Date'])
+    term_deposit['transactions']['transaction'][i]['txn_Date'] = d.strftime('%d-%m-%Y %H:%M:%S')
+    TD_credit_debit_time.append(term_deposit['transactions']['transaction'][i]['txn_Date'])
 
     term_deposit['transactions']['transaction'][i]['amount'] = float(term_deposit['transactions']['transaction'][i]['amount'])
     if term_deposit['transactions']['transaction'][i]['type'] == 'DEBIT':
-        TD_debit_amount.append(recurring_deposit['transactions']['transaction'][i]['amount'])
+        TD_debit_amount.append(term_deposit['transactions']['transaction'][i]['amount'])
         TD_credit_amount.append(None)
         TD_credit_amount_neg.append(None)
     elif term_deposit['transactions']['transaction'][i]['type'] == 'CREDIT':
@@ -270,7 +270,7 @@ class pension(Resource):
         return pensions_json
 
 
-
+########### routes ##################################
 
 api.add_resource(total_asset,"/total_asset")
 api.add_resource(liabilities,"/liabilities")
